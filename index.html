@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Carlos Navas · Built with AI, corrected in red</title>
+<meta name="description" content="I'm not a programmer. These are the things I built with Claude Code, and what broke first in each one.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23EEF1F3'/><path d='M6 17 C12 14 19 19 26 15' stroke='%23C8312A' stroke-width='3.2' fill='none' stroke-linecap='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="scrollcraft.css">
+<style>
+:root{
+  --sc-canvas:#EEF1F3; --sc-surface:#FFFFFF;
+  --sc-ink:#15202B;    --sc-ink-soft:#4B5866;
+  --sc-accent:#C8312A; --sc-accent-ink:#FFFFFF;
+  --sc-font-display:"Bricolage Grotesque",system-ui,sans-serif;
+  --sc-font-text:"IBM Plex Sans",system-ui,sans-serif;
+  --sc-font-mono:"IBM Plex Mono",ui-monospace,monospace;
+  --pen:var(--sc-accent);
+  --grid:color-mix(in oklab,#2B5A80 9%,transparent);
+  --folio-w:clamp(0px,(100vw - 1100px)*9,7.5rem);
+}
+
+/* ---------- grounds: every entry sits on its own page. Hard cuts, no drift. */
+.entry{position:relative;background:var(--sc-canvas);color:var(--sc-ink)}
+.ground-grid{
+  background-color:var(--sc-canvas);
+  background-image:
+    linear-gradient(var(--grid) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:26px 26px;background-position:-1px -1px;
+}
+.ground-plain{--sc-canvas:#F8F9FA;background:var(--sc-canvas)}
+.ground-ink{
+  --sc-canvas:#111921;--sc-surface:#1A242E;
+  --sc-ink:#E8EDF1;--sc-ink-soft:#A7B4C0;--sc-accent:#FF7D6E;--sc-accent-ink:#111921;
+  --pen:var(--sc-accent);--grid:color-mix(in oklab,#9CC3E4 7%,transparent);
+  background-color:var(--sc-canvas);color:var(--sc-ink);
+}
+.ground-ink a{color:var(--sc-ink)}
+.entry::before{ /* the page edge between entries: a cut, drawn once */
+  content:"";position:absolute;left:0;right:0;top:0;height:1px;background:var(--sc-hairline-strong);
+}
+
+/* ---------- the folio. Lives in the margin, says which entry you are in. */
+.folio{
+  position:fixed;z-index:30;left:0;top:0;bottom:0;width:var(--folio-w);
+  display:flex;align-items:center;justify-content:center;pointer-events:none;
+}
+.folio__t{
+  writing-mode:vertical-rl;transform:rotate(180deg);
+  font:500 var(--sc-t-xs)/1 var(--sc-font-mono);letter-spacing:.08em;text-transform:uppercase;
+  color:var(--folio-ink,#4B5866);white-space:nowrap;
+  transition:color 200ms var(--sc-ease-out);
+}
+.folio__n{color:var(--pen-folio,#C8312A);margin-bottom:.9em;display:inline-block}
+body[data-ground="ink"]{--folio-ink:#A7B4C0;--pen-folio:#FF7D6E}
+@media (max-width:1099px){
+  .folio{left:auto;right:0;top:0;bottom:auto;width:auto;height:auto;padding:10px var(--sc-gutter) 10px 14px;
+         border-bottom-left-radius:8px;background:color-mix(in oklab,var(--folio-bg,#EEF1F3) 92%,transparent);
+         backdrop-filter:none}
+  body[data-ground="ink"]{--folio-bg:#111921}
+  .folio__t{writing-mode:horizontal-tb;transform:none}
+  .folio__n{margin:0 .7em 0 0}
+}
+
+.entry{padding-left:var(--folio-w)}
+.col{width:100%;max-width:74rem;margin-inline:auto;padding-inline:var(--sc-gutter)}
+
+/* ---------- type */
+h1,h2,h3{font-family:var(--sc-font-display);margin:0;text-wrap:balance;letter-spacing:var(--sc-track-snug)}
+h2{font-weight:800;font-size:var(--sc-t-3xl);line-height:var(--sc-leading-none);letter-spacing:var(--sc-track-tight)}
+h3{font-weight:700;font-size:var(--sc-t-xl);line-height:1.1}
+p{margin:0;text-wrap:pretty}
+.prose{max-width:60ch}
+.prose > * + *{margin-top:var(--sc-4)}
+.lede{font-size:var(--sc-t-lg);line-height:1.45;color:var(--sc-ink)}
+.soft{color:var(--sc-ink-soft)}
+.tools{font:400 var(--sc-t-xs)/1.6 var(--sc-font-mono);color:var(--sc-ink-soft);letter-spacing:.01em}
+.kicker{font:500 var(--sc-t-xs)/1.4 var(--sc-font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--sc-ink-soft)}
+a{color:inherit;text-decoration-color:color-mix(in oklab,currentColor 45%,transparent)}
+a:hover{text-decoration-color:var(--pen)}
+a:active{opacity:.75}
+
+/* ---------- the red pen (signature). <del> is the claim, <ins> is the fix.
+   --k (0..1) is set per correction from its own position on screen: 0 to .5
+   draws the strike through the claim line by line, .5 to 1 writes the fix.
+   Without JS, or with reduced motion, it rests at 1: corrected. */
+.fix{--k:1;--s:clamp(0,var(--k)*2,1);--w:clamp(0,var(--k)*2 - 1,1)}
+.fix del{
+  text-decoration:none;color:inherit;
+  background-image:linear-gradient(var(--pen),var(--pen));
+  background-repeat:no-repeat;background-position:0 58%;
+  background-size:calc(var(--s) * 100%) .12em;
+  -webkit-box-decoration-break:slice;box-decoration-break:slice;
+}
+.fix del{color:color-mix(in oklab,var(--sc-ink) calc(100% - var(--s) * 38%),var(--sc-canvas))}
+.fix ins{
+  text-decoration:none;color:var(--pen);display:block;
+  font-family:var(--sc-font-display);font-weight:700;
+  clip-path:inset(-.2em calc((1 - var(--w)) * 100%) -.3em -.4em);
+  transform:translateX(calc((1 - var(--w)) * -.25em)) rotate(-.6deg);transform-origin:left;
+}
+.fix ins::before{content:"\2038";margin-right:.25em;display:inline-block;transform:translateY(.15em);font-weight:500}
+
+/* ---------- 00 cover */
+.cover{min-height:100svh;display:grid;align-content:center;padding-block:var(--sc-9) var(--sc-8)}
+.cover h1{font-weight:800;font-size:clamp(2.4rem,1.2rem + 4.4vw,5.4rem);line-height:1;letter-spacing:var(--sc-track-tight);max-width:17ch}
+.cover h1 del{display:block;width:fit-content}
+.cover h1 del{white-space:normal}
+.cover h1 ins{font-size:.94em;margin-top:.08em;font-weight:800}
+.cover .lede{margin-top:var(--sc-7);max-width:34ch}
+.byline{margin-top:var(--sc-5);display:flex;gap:var(--sc-5);flex-wrap:wrap}
+
+/* ---------- 01 hello / video */
+.hello{padding-block:var(--sc-9)}
+.hello__grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2.2fr);gap:var(--sc-7);align-items:end}
+.hello h2{font-size:var(--sc-t-2xl)}
+.video{aspect-ratio:16/9;background:#0E141A;border-radius:6px;overflow:hidden;display:grid;place-items:center;
+       box-shadow:0 18px 40px -22px rgba(21,32,43,.45),0 2px 6px -2px rgba(21,32,43,.2)}
+.video iframe{width:100%;height:100%;border:0}
+.video__ph{font:500 var(--sc-t-sm) var(--sc-font-mono);color:#A7B4C0}
+figcaption{font:400 var(--sc-t-xs)/1.5 var(--sc-font-mono);color:var(--sc-ink-soft);margin-top:var(--sc-3)}
+
+/* ---------- 02 the wiki */
+.wiki{padding-block:var(--sc-9) var(--sc-8)}
+.spread{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:var(--sc-8);margin-top:var(--sc-7);align-items:start}
+.quote{background:var(--sc-surface);border-radius:6px;padding:var(--sc-6);
+       box-shadow:0 1px 0 rgba(255,255,255,.8) inset,0 14px 32px -20px rgba(21,32,43,.35)}
+.quote .kicker{display:block;margin-bottom:var(--sc-4)}
+.quote blockquote{margin:0;font-size:var(--sc-t-base)}
+.quote blockquote p + p{margin-top:var(--sc-3)}
+.quote .src{margin-top:var(--sc-4)}
+.wikis{margin:0}
+.wikis > div{padding:var(--sc-5) 0;border-top:1px solid var(--sc-hairline-strong)}
+.wikis > div:first-child{padding-top:0;border-top:0}
+.wikis dt{font:700 var(--sc-t-xl)/1.1 var(--sc-font-display);letter-spacing:var(--sc-track-snug);margin-bottom:var(--sc-2)}
+.wikis > div:first-child dt{font-size:var(--sc-t-2xl)}
+.wikis dd{margin:0;max-width:58ch}
+.spread .tools{margin-top:var(--sc-5)}
+.facts{display:flex;gap:var(--sc-7);margin-top:var(--sc-6);flex-wrap:wrap}
+.facts b{display:block;font:800 var(--sc-t-2xl)/1 var(--sc-font-display);letter-spacing:var(--sc-track-tight)}
+.facts span{font-size:var(--sc-t-sm);color:var(--sc-ink-soft)}
+
+/* ---------- 02b the peak: three claims, corrected one by one */
+.ledger [data-sc-stage]{display:grid;align-content:center}
+.ledger__in{width:100%;max-width:74rem;margin-inline:auto;padding-inline:var(--sc-gutter)}
+.ledger .kicker{margin-bottom:var(--sc-6)}
+.ledger ol{list-style:none;margin:0;padding:0;display:grid;gap:clamp(1.2rem,4.2vh,2.6rem)}
+.ledger li{display:grid;grid-template-columns:3.2rem minmax(0,1fr);gap:0 var(--sc-4)}
+.ledger li > span{font:500 var(--sc-t-sm)/2.2 var(--sc-font-mono);color:var(--sc-ink-soft)}
+.ledger del{font:700 clamp(1.5rem,1rem + 1.7vw,2.7rem)/1.12 var(--sc-font-display);letter-spacing:var(--sc-track-snug);max-width:34ch;display:inline}
+.ledger ins{font-size:clamp(1.2rem,.95rem + 1vw,1.9rem);line-height:1.2;margin-top:.3em;max-width:40ch}
+
+/* ---------- 03 pokémon */
+.poke{padding-block:var(--sc-9)}
+.poke__grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:var(--sc-8);align-items:center;margin-top:var(--sc-7)}
+.pixels{display:grid;grid-template-columns:1fr 1fr;gap:var(--sc-4)}
+.pixels img{width:100%;height:auto;image-rendering:pixelated;border-radius:3px;
+            box-shadow:0 0 0 6px #1B2530,0 16px 30px -16px rgba(21,32,43,.6)}
+.pixels figure{margin:0}
+.pixels figure:nth-child(2){margin-top:var(--sc-8)}
+
+/* ---------- 04 app */
+.app{padding-block:var(--sc-9)}
+.app__grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--sc-8);align-items:center}
+.phones{display:grid;grid-template-columns:1fr 1fr;gap:var(--sc-5);padding-block:var(--sc-6)}
+.phones img{width:100%;height:auto;max-width:none;border-radius:22px;
+            box-shadow:0 0 0 7px #0E1418,0 26px 44px -22px rgba(21,32,43,.6)}
+.phones .p2{margin-top:var(--sc-9)}
+.fixes{margin-top:var(--sc-7);display:grid;gap:var(--sc-6)}
+.fixes .fix del{font-size:var(--sc-t-base)}
+.fixes .fix ins{font-size:var(--sc-t-lg);line-height:1.3;margin-top:.2em}
+
+/* ---------- 05 two smaller things */
+.small{padding-block:var(--sc-9)}
+.small__grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--sc-8) var(--sc-9);margin-top:var(--sc-7)}
+.small__grid article > * + *{margin-top:var(--sc-4)}
+.small__grid article:nth-child(2){padding-top:var(--sc-9)}
+
+/* ---------- 06 before AI (pan) */
+.before [data-sc-stage]{display:grid;align-content:center}
+.rail{gap:var(--sc-6);padding-inline:var(--sc-gutter) calc(var(--sc-gutter) * 2);align-items:stretch;width:max-content}
+.rail > *{flex:0 0 auto}
+.rail__lead{width:min(30rem,78vw);display:grid;align-content:center}
+.rail__lead h2{font-size:var(--sc-t-3xl)}
+.rail__lead p{margin-top:var(--sc-5);max-width:30ch}
+.label{width:min(24rem,78vw);border-top:2px solid var(--sc-ink);padding-top:var(--sc-4);display:grid;align-content:start;gap:var(--sc-3)}
+.label .yr{font:800 var(--sc-t-3xl)/1 var(--sc-font-display);letter-spacing:var(--sc-track-tight)}
+.label h3{font-size:var(--sc-t-xl);line-height:1.15}
+.label p{font-size:var(--sc-t-base);color:var(--sc-ink-soft)}
+.label .where{font:400 var(--sc-t-xs)/1.5 var(--sc-font-mono);color:var(--sc-ink-soft)}
+.rail__end{width:min(22rem,78vw);display:grid;align-content:center}
+.rail__end p{font:700 var(--sc-t-xl)/1.15 var(--sc-font-display)}
+@media (prefers-reduced-motion:no-preference){
+  .rail > :not(:first-child){
+    --a:clamp(0,(var(--sc-p,0) * 6 - var(--i,1) * .55),1);
+    opacity:calc(.5 + var(--a) * .5);transform:translateY(calc((1 - var(--a)) * 18px));
+  }
+}
+
+/* ---------- 07 keeping up */
+.keep{padding-block:var(--sc-9)}
+.keep__grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:var(--sc-8);margin-top:var(--sc-7);align-items:start}
+.sources{list-style:none;margin:0;padding:0}
+.sources li{padding:var(--sc-4) 0;border-top:1px solid var(--sc-hairline-strong)}
+.sources li:last-child{border-bottom:1px solid var(--sc-hairline-strong)}
+.sources b{font-weight:600}
+.news .fix del{font:700 var(--sc-t-xl)/1.2 var(--sc-font-display)}
+.news .fix ins{font-size:var(--sc-t-lg);line-height:1.3;margin-top:.3em}
+.news > p{margin-top:var(--sc-5)}
+
+/* ---------- colophon */
+.colophon{padding-block:var(--sc-9) var(--sc-8);min-height:72svh;display:grid;align-content:end}
+.colophon .col > * + *{margin-top:var(--sc-4)}
+.colophon .fix{max-width:46ch;font-size:var(--sc-t-base)}
+.colophon .fix ins{font-size:var(--sc-t-base);font-weight:500;margin-top:.2em}
+.colophon .watch{font-size:var(--sc-t-lg);margin-top:var(--sc-6)}
+.colophon .watch a{text-decoration-color:var(--pen);text-decoration-thickness:2px}
+.colophon small{display:block;margin-top:var(--sc-7);font:400 var(--sc-t-xs)/1.6 var(--sc-font-mono);color:var(--sc-ink-soft)}
+
+/* ---------- phones */
+@media (max-width:860px){
+  .hello__grid,.spread,.poke__grid,.app__grid,.small__grid,.keep__grid{grid-template-columns:minmax(0,1fr);gap:var(--sc-7)}
+  .small__grid article:nth-child(2){padding-top:0}
+  .phones{max-width:26rem}
+  .pixels figure:nth-child(2){margin-top:var(--sc-6)}
+}
+@media (max-width:600px){
+  .ledger li{grid-template-columns:minmax(0,1fr)}
+  .ledger li > span{line-height:1.4}
+  .phones .p2{margin-top:var(--sc-7)}
+}
+</style>
+</head>
+<body data-ground="paper">
+
+<span data-sc-progress></span>
+<div class="sc-grain" aria-hidden="true"></div>
+
+<div class="folio" aria-hidden="true"><span class="folio__t"><span class="folio__n" data-folio-n>00</span><span data-folio-t>Cover</span></span></div>
+
+<main class="page">
+
+  <!-- 00 · COVER: a title page. Type on paper, the first correction happens on its own. -->
+  <header class="entry ground-grid cover" data-entry="00" data-title="Cover">
+    <div class="col">
+      <h1 class="fix" data-fix="auto">Things I built with AI <del>that worked first time.</del><ins>and what broke first.</ins></h1>
+      <p class="lede">I'm not a programmer. Since this summer I've been building tools for my own life with Claude Code.</p>
+      <p class="byline kicker"><span>Carlos Navas</span><span>Madrid</span><span>October 2026</span></p>
+    </div>
+  </header>
+
+  <!-- 01 · HELLO: the video, in its own column -->
+  <section class="entry ground-plain hello" data-entry="01" data-title="Hello" id="video" data-sc-act="flow">
+    <div class="col hello__grid" data-sc-in data-sc-stagger="70">
+      <div class="prose">
+        <h2>Hi, I'm Carlos.</h2>
+        <p class="soft">I recorded it in my room, in one take, with nothing set up. Almost everything else on this page was built with AI, so I wanted to start with something that's just me.</p>
+        <p class="soft">After that come the projects, each one with what didn't work at first and what I changed.</p>
+      </div>
+      <figure style="margin:0">
+        <div class="video">
+          <iframe src="https://www.youtube-nocookie.com/embed/FHUQHE9aQKw?rel=0" title="Carlos Navas, a 2-minute intro" loading="lazy" allow="encrypted-media; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        </div>
+        <figcaption>My room, one take, no cuts.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 02 · THE WIKI: the substance, then the peak -->
+  <section class="entry ground-grid wiki" data-entry="02" data-title="The wiki">
+    <div class="col">
+      <div class="prose" data-sc-in data-sc-stagger="70">
+        <p class="kicker">What I use the most</p>
+        <h2>Three wikis that Claude Code keeps for me.</h2>
+        <p class="lede">I got the idea from Nate's 6-hour course. It comes from <a href="https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f">LLM Wiki</a>, a long text by Andrej Karpathy that you paste into your AI agent. You bring the sources and the questions; the AI writes the pages, links them, dates every claim and flags anything that contradicts what's already there.</p>
+      </div>
+      <div class="spread">
+        <div data-sc-in data-sc-stagger="70">
+          <dl class="wikis">
+            <div><dt>Career mentor</dt>
+              <dd>My main one. I use it to look for work: it collects job offers and scores each one from 0 to 100 against what I want, researches companies as employers, tailors my CV to each offer and keeps track of every application. It also gets to know me (what motivates me, what I'm curious about), so it works as a second brain. And it's told to act like an honest mentor: if an offer isn't right for me, it has to say so.</dd></div>
+            <div><dt>AI</dt>
+              <dd>Where I learn about AI. I file articles, videos and reports into it, and it's the first place I go when I have a question.</dd></div>
+            <div><dt>Health</dt>
+              <dd>For my own health questions. That one stays private.</dd></div>
+          </dl>
+          <p class="tools">Claude Code · Obsidian · Markdown · Tavily · three skills I wrote for the career wiki</p>
+          <div class="facts" aria-label="The AI wiki, as of 31 October 2026">
+            <p><b>90</b><span>linked pages in the AI wiki</span></p>
+            <p><b>40</b><span>sources behind them</span></p>
+          </div>
+        </div>
+        <figure class="quote" style="margin:0" data-sc-in>
+          <span class="kicker">From the AI wiki · translated from Spanish</span>
+          <blockquote>
+            <p><b>Two accounts of the same event.</b> Hugging Face calls it a security incident disclosure, an intrusion by an unknown attacker. OpenAI calls it the two companies working together on a security incident during a model evaluation.</p>
+            <p>The facts don't contradict each other; each framing serves whoever wrote it. Neither is a neutral source, and this wiki doesn't have one that is.</p>
+          </blockquote>
+          <figcaption class="src">Page: "Hugging Face incident", 3 sources, filed 25 August 2026.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="entry ground-ink ledger" data-entry="02" data-title="The wiki · what broke" data-sc-act="pin" data-sc-span="3.4" data-ground="ink">
+    <div data-sc-stage>
+      <div class="ledger__in">
+        <p class="kicker">What broke first, and what the wiki does now</p>
+        <ol>
+          <li><span>i.</span><div class="fix" data-fix="0.06 0.30"><del>It filled gaps with guesses. Twice it marked whole industries as "ruled out" when I'd never said so.</del><ins>Nothing goes in without a source and a date.</ins></div></li>
+          <li><span>ii.</span><div class="fix" data-fix="0.36 0.60"><del>Glassdoor blocks automated access, so company research kept stalling.</del><ins>It works from search snippets and always shows the review count. A 4.5 from six reviews means nothing.</ins></div></li>
+          <li><span>iii.</span><div class="fix" data-fix="0.66 0.90"><del>Tailoring my CV, it upgraded my job titles to match the offer.</del><ins>Written rules for what can be reworded and what can't.</ins></div></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 · POKÉMON: the pixels arrive with a wipe -->
+  <section class="entry ground-plain poke" data-entry="03" data-title="A Pokémon hack" data-sc-act="flow">
+    <div class="col">
+      <div class="prose" data-sc-in data-sc-stagger="70">
+        <h2>A Pokémon game that enforces its own rules.</h2>
+      </div>
+      <div class="poke__grid">
+        <div class="pixels">
+          <figure data-sc-reveal="up" data-sc-reveal-at="0.12 0.42"><img src="img/pokemon-menu.png" width="240" height="160" alt="The in-game start menu in Spanish: Pokémon, Mochila, Guardar, Opciones, Salir"></figure>
+          <figure data-sc-reveal="up" data-sc-reveal-at="0.2 0.5"><img src="img/pokemon-bag.png" width="240" height="160" alt="The bag screen in Spanish, with the option Cerrar la mochila"><figcaption>Test screenshots of my Spanish translation.</figcaption></figure>
+        </div>
+        <div class="prose" data-sc-in data-sc-stagger="70">
+          <p>Nuzlocke is a challenge players set themselves: if a Pokémon faints it's gone, and you can only catch the first one in each area. I wanted the game to enforce it, so this FireRed hack releases fainted Pokémon, limits catches per area and shows a game over screen. I also had it translated into Spanish. It runs on my old PSP.</p>
+          <p class="tools">Claude Code · C · pokeemerald-expansion · ARM toolchain · a PSP 3000</p>
+          <div class="fixes">
+            <div class="fix" data-fix><del>The PSP emulator doesn't keep the game's real-time clock.</del><ins>The clock now runs on play time instead.</ins></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 · THE APP: two real screens at two depths -->
+  <section class="entry ground-grid app" data-entry="04" data-title="An expenses app" data-sc-act="flow">
+    <div class="col app__grid">
+      <div class="prose" data-sc-in data-sc-stagger="70">
+        <h2>An expenses app in two taps.</h2>
+        <p>Type the amount like a cash register (the last two digits are the cents), then tap the category. A month view shows where it went. I built a second app the same way, for reminders, mostly to learn how apps are made.</p>
+        <p class="tools">Claude Code · HTML, CSS and JavaScript, no libraries · installable web app</p>
+        <div class="fixes">
+          <div class="fix" data-fix><del>A native iOS app. On a free Apple account it has to be reinstalled every 7 days.</del><ins>A web app saved to the home screen. It's free, it never expires and it works offline.</ins></div>
+          <div class="fix" data-fix><del>Amounts stored as decimals, which drift when you add up many of them.</del><ins>Stored as whole cents.</ins></div>
+        </div>
+      </div>
+      <div>
+        <div class="phones">
+          <img class="p1" data-sc-parallax="0.9" src="img/app-nuevo.png" width="480" height="1039" alt="The app's entry screen: an amount of 125,00 euros, seven category buttons and a number pad">
+          <img class="p2" data-sc-parallax="-0.9" src="img/app-mes.png" width="480" height="1039" alt="The month view for October 2026: a total of 385,53 euros split into coloured bars by category">
+        </div>
+        <figcaption>Real app, made-up numbers.</figcaption>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 · TWO SMALLER THINGS -->
+  <section class="entry ground-plain small" data-entry="05" data-title="Two smaller things">
+    <div class="col">
+      <h2 data-sc-in>Two smaller things.</h2>
+      <div class="small__grid">
+        <article data-sc-in data-sc-stagger="70">
+          <h3>Testing a prompt like an experiment</h3>
+          <p>I wanted a prompt that strips the filler out of AI-written text. Instead of eyeballing it, I wrote one test sentence with five known AI-writing markers, fixed the pass criterion before running anything (the empty phrase has to disappear, not just get softer) and logged seven runs across prompt versions.</p>
+          <p class="tools">Microsoft Copilot custom agent · prompt versions · run log</p>
+          <div class="fixes">
+            <div class="fix" data-fix><del>I changed two things at once. The version passed, and I couldn't tell which change fixed it.</del><ins>One variable per comparison. Only one pair in my log is a clean test, so that's the only result I count.</ins></div>
+          </div>
+        </article>
+        <article data-sc-in data-sc-stagger="70">
+          <h3>A portfolio site for my brother, an architect</h3>
+          <p>His projects turn on a 3D cube on the home page. I set it up with the CLAUDE.md file from Nate's video <i>Building Beautiful Websites with Claude Code Is Too Easy</i>: Claude screenshots its own work, compares it with reference sites I researched, fixes the differences and goes again.</p>
+          <p class="tools">Claude Code · Tailwind · screenshot-and-compare loop</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 · BEFORE AI: a timeline, travelled sideways -->
+  <section class="entry ground-ink before" data-entry="06" data-title="Before AI" data-sc-act="pan" data-sc-span="3.6" data-ground="ink">
+    <div data-sc-stage>
+      <div class="rail" data-sc-pan="0.04">
+        <div class="rail__lead">
+          <h2>Before AI.</h2>
+          <p class="soft">Research, writing and video, for years.</p>
+        </div>
+        <article class="label" style="--i:1"><span class="yr">2019</span><h3>Studied in the Netherlands</h3><p class="where">Avans University of Applied Sciences</p></article>
+        <article class="label" style="--i:2"><span class="yr">2019</span><h3>Started on YouTube</h3><p>I script, film and edit everything myself. Later came travel videos from Uruguay and Argentina.</p><p class="where"><a href="https://www.youtube.com/@olarancarlos">youtube.com/@olarancarlos</a></p></article>
+        <article class="label" style="--i:3"><span class="yr">2022</span><h3>Co-authored a research paper</h3><p>"Measuring engagement on Twitter using a composite index".</p><p class="where">Journal of Informetrics, Elsevier</p></article>
+        <article class="label" style="--i:4"><span class="yr">2024</span><h3>Co-authored a trade study</h3><p>Electric mobility and green hydrogen in Uruguay, for ICEX.</p><p class="where">Spanish Embassy, Montevideo</p></article>
+        <article class="label" style="--i:5"><span class="yr">Now</span><h3>Affiliate partnerships at Awin</h3><p>Eight global advertisers. I negotiate commissions and terms, handle disputes and report in Excel and Power BI.</p><p class="where">Much of it carries over to sponsor deals</p></article>
+        <div class="rail__end"><p>Then, this summer, Claude Code.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 · KEEPING UP -->
+  <section class="entry ground-grid keep" data-entry="07" data-title="Keeping up">
+    <div class="col">
+      <h2 data-sc-in>How I keep up with AI.</h2>
+      <div class="keep__grid">
+        <ul class="sources" data-sc-in data-sc-stagger="60">
+          <li><b>Nate Herk's channel.</b> I learned Claude Code there, with the 6-hour course.</li>
+          <li><b>DotCSV</b>, so I follow AI in Spanish too. I watch nearly every video.</li>
+          <li><b>Primary sources over commentary:</b> company reports, research blogs like Cisco Talos, the GitHub repos of the tools themselves.</li>
+        </ul>
+        <div class="news">
+          <p class="kicker">Latest thing that stuck · DotCSV, 12 October</p>
+          <div class="fix" data-fix style="margin-top:var(--sc-4)"><del>OpenAI's models solved 372 families of open maths problems.</del><ins>Only 42% are formally verified in Lean, and three were withdrawn over errors.</ins></div>
+          <p class="soft">The claim and the verified part of the claim are two different things. That's most of the job, I think.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COLOPHON: smallest type on the page, the last correction is about the page itself -->
+  <footer class="entry ground-plain colophon" data-entry="08" data-title="Colophon">
+    <div class="col">
+      <p class="kicker">Colophon</p>
+      <div class="fix" data-fix><del>This page was made with one prompt.</del><ins>Made with Claude Code and the Scrollcraft skill, then checked screen by screen in a browser and fixed until it held up.</ins></div>
+      <p class="watch">If you watch one thing here, <a href="#video">make it the 2-minute video</a>.</p>
+      <p class="soft">Or write to me at <a href="mailto:nsarcarlos@gmail.com">nsarcarlos@gmail.com</a>.</p>
+      <small>Carlos Navas · Madrid · October 2026 · <a href="https://www.youtube.com/@olarancarlos">YouTube</a></small>
+    </div>
+  </footer>
+
+</main>
+
+<script src="scrollcraft.js"></script>
+<script>ScrollCraft.mount(document.body);</script>
+<script>
+/* The red pen. Each [data-fix] gets --k from 0 to 1:
+   - inside a pinned act, from that act's own --sc-p and the "from to" window;
+   - "auto" (the cover), once, on a short timer after the fonts land;
+   - anywhere else, from where the line sits on screen: it starts when the line
+     reaches 82% of the viewport height and is fully corrected by 48%
+     (or by wherever it comes to rest, for lines at the very end).
+   Scroll back up and the fix rubs out again. */
+(function () {
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var fixes = [].slice.call(document.querySelectorAll('[data-fix]'));
+  if (reduce) return; // rests at --k:1, corrected
+  var clamp = function (v) { return v < 0 ? 0 : v > 1 ? 1 : v; };
+  var items = fixes.map(function (el) {
+    var a = el.getAttribute('data-fix');
+    var act = el.closest('[data-sc-act="pin"]');
+    var w = a && a !== 'auto' ? a.split(/\s+/).map(Number) : null;
+    return { el: el, auto: a === 'auto', act: act, from: w ? w[0] : 0, to: w ? w[1] : 1, k: -1 };
+  });
+  items.forEach(function (it) { if (!it.auto) it.el.style.setProperty('--k', 0); });
+
+  var cover = items.filter(function (it) { return it.auto; })[0];
+  if (cover) {
+    cover.el.style.setProperty('--k', 0);
+    var t0 = null, dur = 1500;
+    var go = function () {
+      requestAnimationFrame(function step(t) {
+        if (t0 === null) t0 = t;
+        var x = clamp((t - t0) / dur);
+        var e = 1 - Math.pow(1 - x, 3);
+        cover.el.style.setProperty('--k', e.toFixed(3));
+        if (x < 1) requestAnimationFrame(step);
+      });
+    };
+    (document.fonts ? document.fonts.ready : Promise.resolve()).then(function () { setTimeout(go, 700); });
+  }
+
+  function frame() {
+    var vh = innerHeight, maxY = document.documentElement.scrollHeight - vh;
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i]; if (it.auto) continue;
+      var k;
+      if (it.act) {
+        var p = parseFloat(it.act.style.getPropertyValue('--sc-p')) || 0;
+        k = clamp((p - it.from) / (it.to - it.from));
+      } else {
+        var r = it.el.getBoundingClientRect();
+        var c = r.top + r.height * 0.5, y = c / vh;
+        // A line near the end of the page may never climb to 48%: finish it
+        // where it will actually stop, so the last correction always lands.
+        var yStop = (c - (maxY - scrollY)) / vh;
+        var end = Math.max(0.48, yStop), start = end + 0.34;
+        k = clamp((start - y) / (start - end));
+      }
+      k = Math.round(k * 500) / 500;
+      if (k !== it.k) { it.k = k; it.el.style.setProperty('--k', k); }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
+/* The folio: which entry you are in, and which ground it sits on. */
+(function () {
+  var n = document.querySelector('[data-folio-n]'), t = document.querySelector('[data-folio-t]');
+  var entries = [].slice.call(document.querySelectorAll('[data-entry]'));
+  var cur = null;
+  function tick() {
+    var mid = innerHeight * 0.35, hit = entries[0];
+    for (var i = 0; i < entries.length; i++) {
+      if (entries[i].getBoundingClientRect().top <= mid) hit = entries[i];
+    }
+    if (hit !== cur) {
+      cur = hit;
+      n.textContent = hit.getAttribute('data-entry');
+      t.textContent = hit.getAttribute('data-title');
+      document.body.setAttribute('data-ground', hit.getAttribute('data-ground') || 'paper');
+    }
+  }
+  addEventListener('scroll', tick, { passive: true }); addEventListener('resize', tick); tick();
+})();
+</script>
+</body>
+</html>
